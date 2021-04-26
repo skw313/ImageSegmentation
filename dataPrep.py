@@ -16,7 +16,7 @@ archive_label = os.listdir(dir_label_mat)
 
 # Prepare array that saves indices of random images extracted for dataset
 random.seed(1)  # comment out for "true" randomness
-n = 1           # TODO change number of images extracted per .mat file
+n = 40           # TODO change number of images extracted per .mat file (40*99 = 3960 images)
 idx = np.zeros((len(archive_data), n), dtype=int)
 
 # Extract data from the files from data augmentation part
@@ -34,6 +34,8 @@ for f in range(0, len(archive_data)):
     for i in idx[f]:
         image = np.reshape(data_img[i, :, :], (256, 256))
         image = (255.0 / image.max() * (image - image.min())).astype(np.uint8)
+        label = data_lbl[i, :, :]
+        label[np.where(label > 1)] = 0      # TODO only generate grey matter mask --> scale up for multi-class segmentation
         label = np.reshape(data_lbl[i, :, :], (256, 256))
         label = (255.0 / label.max() * (label - label.min())).astype(np.uint8)
         # Uncomment to show images
@@ -109,7 +111,9 @@ for folder in mask_folders:
 
 
 ### Delete all images -- comment out for final dataset###
+'''
 def delete():
     for folder in os.listdir(dir_code + '/dataset'):
         for file in os.listdir(dir_code + '/dataset/' + folder):
             os.remove(dir_code + '/dataset/' + folder + '/' + file)
+'''

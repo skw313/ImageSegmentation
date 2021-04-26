@@ -4,7 +4,6 @@ from data import *
 from loss_functions import dice_coeff_loss
 import time
 
-
 # GPU memory allocation
 gpus = tf.config.experimental.list_physical_devices('GPU')
 if gpus:
@@ -19,9 +18,9 @@ if gpus:
         print(e)
 
 #-- Hyperparamters --#
-learning_rate = 1e-4    # TODO
-batch_size = 4          # TODO
-num_epochs = 50         # TODO
+learning_rate = 1e-3    # TODO
+batch_size = 2          # TODO
+num_epochs = 15         # TODO
 
 # Get the data
 [x_train, y_train] = get_data("train")
@@ -33,21 +32,26 @@ model = u_net()
 model.summary()
 model.compile(optimizer=Adam(lr=learning_rate),
               loss=dice_coeff_loss,
-              metrics=['accuracy'])
-checkpoint = ModelCheckpoint('weights/{epoch:02d}_{val_accuracy:.2f}.hdf5',
+              metrics=[tf.keras.metrics.CategoricalAccuracy()])
+checkpoint = ModelCheckpoint('results/weights/{epoch:02d}_{val_categorical_accuracy:.2f}.hdf5',
                              save_weights_only=True,
-                             monitor='val_accuracy',
+                             monitor='val_categorical_accuracy',
                              mode='max',
                              save_best_only=True)
-tensorboard = tf.keras.callbacks.TensorBoard(log_dir='logs', update_freq='epoch')
-# TODO change optimiser and metric --> Decide between accuracy and categorical accuracy
-# TODO save metric and loss and hyperparameters (.nyp file --> numpy.save and numpy.load)
+tensorboard = tf.keras.callbacks.TensorBoard(log_dir='results/logs', update_freq='epoch')
+#lr_scheduler = tf.keras.callbacks.LearningRateScheduler(scheduler, verbose=1)
 
 # Train model
 start = time.time()
 history = model.fit(x_train, y_train, batch_size, num_epochs, validation_data=(x_val, y_val), callbacks=[checkpoint, tensorboard])
 end = time.time()
-print("Training Complete in " + "{0:.2f}".format(end - start) + " secs" )
+print("Training Complete in " + "{0:.2f}".format(end - start) + " secs")
 
 # Test model
 evaluation = model.evaluate(x_test, y_test, batch_size, verbose=1)
+
+# Save predictions of the model
+print("Saving the masks predicted by the model")
+prediction = model.predict(x_test, batch_size, verbose=1)
+save_prediction(prediction, x_test, y_test, num_classes=1)
+
