@@ -43,6 +43,10 @@ def get_data(s):
         x[f, :, :] = np.asarray(image)
         y[f, :, :] = np.asarray(mask)
 
+    # Reshape out images to (B,H,W,2) where last channel is probably true / false as separate images
+    y = np.reshape(y, (y.shape[0], y.shape[1], y.shape[2], 1)) 
+    y = np.concatenate( (1 - y, y), axis=3)  # Index 0: Incorrect, Index 1: Correct
+    
     return [x, y]
 
 
