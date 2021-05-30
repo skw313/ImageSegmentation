@@ -8,9 +8,10 @@ from PIL import Image
 
 dir_code = os.getcwd()
 dir_parent = os.path.dirname(dir_code)
+dir_grandparent = os.path.dirname(dir_parent)
 
-dir_data_mat = dir_parent + '/DataAugmentation/data_mat'
-dir_label_mat = dir_parent + '/DataAugmentation/data_aug'
+dir_data_mat = dir_grandparent + '/DataAugmentation/data_mat'
+dir_label_mat = dir_grandparent + '/DataAugmentation/data_aug'
 archive_data = os.listdir(dir_data_mat)
 archive_label = os.listdir(dir_label_mat)
 
