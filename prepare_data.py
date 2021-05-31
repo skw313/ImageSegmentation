@@ -1,8 +1,11 @@
+# Preparing the working directory
+# Gets images and masks and allocates them to train, val, and test folders
+
+import numpy as np
 import os
+from os.path import splitext
 import re
 import scipy.io as io
-import matplotlib.pyplot as plt
-import numpy as np
 import random
 from PIL import Image
 
@@ -33,38 +36,30 @@ for f in range(0, len(archive_data)):
     for i in range(0, n):
         idx[f, i] = random.randint(0, data_img.shape[0] - 1)
     for i in idx[f]:
+        # Save data as images
         image = np.reshape(data_img[i, :, :], (256, 256))
         image = (255.0 / image.max() * (image - image.min())).astype(np.uint8)
-        label = data_lbl[i, :, :]
-        label[np.where(label > 1)] = 0      # TODO only generate grey matter mask --> scale up for multi-class segmentation
-        label = np.reshape(data_lbl[i, :, :], (256, 256))
-        label = (255.0 / label.max() * (label - label.min())).astype(np.uint8)
-        # Uncomment to show images
-        #plt.imshow(image)
-        #plt.imshow(label)
-        #plt.show()
-
-        # Save image and label in tmp folders
+        # Save image in temporary folders
         image_name = dir_code + '/dataset/tmp_images/image' + str(len(os.listdir(dir_code + '/dataset/tmp_images/')) + 1) + '.jpg'
         im = Image.fromarray(image, mode='L')
         im.save(image_name)
 
-        mask_name = dir_code + '/dataset/tmp_masks/image' + str(len(os.listdir(dir_code + '/dataset/tmp_masks/')) + 1) + '.jpg'
-        msk = Image.fromarray(label, mode='L')
-        msk.save(mask_name)
+        # Save labels as npz files
+        label = data_lbl[i, :, :]
+        label_name = dir_code + '/dataset/tmp_masks/image' + str(len(os.listdir(dir_code + '/dataset/tmp_masks/')) + 1)
+        np.save(label_name, label)
 
 
-# Shuffle data
 dir_images = dir_code + '/dataset/tmp_images'
 dir_masks = dir_code + '/dataset/tmp_masks'
 all_images = os.listdir(dir_images)
 all_masks = os.listdir(dir_masks)
 
+# Shuffle data
 all_images.sort(key=lambda var:[int(x) if x.isdigit() else x for x in re.findall(r'[^0-9]|[0-9]+', var)])
 all_masks.sort(key=lambda var:[int(x) if x.isdigit() else x for x in re.findall(r'[^0-9]|[0-9]+', var)])
 random.seed(230)
 random.shuffle(all_images)
-
 
 # Split data into train, validation, test set (ratio: 70, 20, 10)
 train_split = int(0.7 * len(all_images))
@@ -75,9 +70,21 @@ val_images = all_images[train_split:val_split]
 test_images = all_images[val_split:]
 
 # Generate corresponding mask lists for masks
-train_masks = [f for f in all_masks if f in train_images]
-val_masks = [f for f in all_masks if f in val_images]
-test_masks = [f for f in all_masks if f in test_images]
+train_masks = []
+val_masks = []
+test_masks = []
+for data in train_images:
+    for mask in all_masks:
+        if splitext(mask)[0] == splitext(data)[0]:
+            train_masks.append(mask)
+for data in val_images:
+    for mask in all_masks:
+        if splitext(mask)[0] == splitext(data)[0]:
+            val_masks.append(mask)
+for data in test_images:
+    for mask in all_masks:
+        if splitext(mask)[0] == splitext(data)[0]:
+            test_masks.append(mask)
 
 image_folders = [(train_images, 'train_images'), (val_images, 'val_images'), (test_images, 'test_images')]
 mask_folders = [(train_masks, 'train_masks'), (val_masks, 'val_masks'), (test_masks, 'test_masks')]
@@ -91,9 +98,9 @@ def add_frames(dir_name, img):
 
 
 def add_masks(dir_name, msk):
-    im = Image.open(dir_masks + '/' + msk)
+    im = np.load(dir_masks + '/' + msk)
     im_name = dir_code + '/dataset' + '/{}'.format(dir_name) + '/' + msk
-    im.save(im_name)
+    np.save(im_name, im)
 
 
 # Add images and labels into corresponding folders
